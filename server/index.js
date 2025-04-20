@@ -3,7 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import { AppDataSource } from "./data-source.js";
-import roomRoutes from "./routes/roomRoutes.js";
+import roomRoutes from "./src/routes/roomRoutes.js";
 import cors from "cors";
 import cron from "node-cron";
 

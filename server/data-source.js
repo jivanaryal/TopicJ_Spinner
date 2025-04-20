@@ -1,7 +1,7 @@
 // src/data-source.js
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
-import Room from "./models/Room.js";
+import Room from "./src/models/Room.js";
 dotenv.config();
 
 export const AppDataSource = new DataSource({
