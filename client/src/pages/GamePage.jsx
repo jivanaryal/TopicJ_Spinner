@@ -19,7 +19,7 @@ function GamePage() {
       try {
         setLoading(true);
         const { data } = await axios.get(
-          `http://localhost:3000/api/rooms/${roomCode}`
+          `https://topicj-spinner-1.onrender.com/api/rooms/${roomCode}`
         );
         const room = data.room;
 

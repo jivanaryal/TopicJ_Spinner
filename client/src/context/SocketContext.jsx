@@ -18,7 +18,7 @@ export const SocketProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    const newSocket = io("http://localhost:3000", {
+    const newSocket = io("https://topicj-spinner-1.onrender.com/", {
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,

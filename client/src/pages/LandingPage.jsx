@@ -8,7 +8,7 @@ function LandingPage() {
   const handleCreateRoom = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/rooms/create"
+        "https://topicj-spinner-1.onrender.com/api/rooms/create"
       );
       const { room } = response.data;
       navigate(`/room/${room.code}`);

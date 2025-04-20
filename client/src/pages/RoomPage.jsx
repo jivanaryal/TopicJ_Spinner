@@ -44,7 +44,7 @@ function RoomPage() {
       try {
         setLoading(true);
         const { data } = await axios.get(
-          `http://localhost:3000/api/rooms/${roomCode}`
+          `https://topicj-spinner-1.onrender.com/api/rooms/${roomCode}`
         );
         const room = data.room;
 
@@ -115,10 +115,13 @@ function RoomPage() {
   const handleAddTopic = async () => {
     if (!topic.trim()) return;
     try {
-      await axios.post("http://localhost:3000/api/rooms/add-topic", {
-        roomCode,
-        topic,
-      });
+      await axios.post(
+        "https://topicj-spinner-1.onrender.com/api/rooms/add-topic",
+        {
+          roomCode,
+          topic,
+        }
+      );
       setTopic("");
     } catch (error) {
       setNotification({
@@ -138,9 +141,12 @@ function RoomPage() {
     }
     setLoading(true);
     try {
-      await axios.post("http://localhost:3000/api/rooms/start-game", {
-        roomCode,
-      });
+      await axios.post(
+        "https://topicj-spinner-1.onrender.com/api/rooms/start-game",
+        {
+          roomCode,
+        }
+      );
       socket.emit("start-game", roomCode);
     } catch (error) {
       setNotification({

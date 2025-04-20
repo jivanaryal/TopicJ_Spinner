@@ -16,8 +16,7 @@ const server = http.createServer(app);
 
 // CORS configuration
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*",
+  origin: process.env.NODE_ENV === "production" ? "*" : "*",
   methods: ["GET", "POST"],
 };
 
