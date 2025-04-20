@@ -33,14 +33,11 @@ function GamePage() {
           gameStarted: room.isLocked,
         });
 
-        // Rejoin room if nickname exists
-        const nickname = localStorage.getItem(`nickname_${roomCode}`);
-        if (nickname && socket.connected) {
-          socket.emit("join-room", { roomCode, nickname });
-        }
-
-        // Redirect if room is not locked or invalid
-        if (!room.isLocked || room.participants.length === 0) {
+        // Only navigate if room is explicitly not locked
+        if (
+          !room.isLocked &&
+          window.location.pathname !== `/room/${roomCode}`
+        ) {
           navigate(`/room/${roomCode}`);
         }
       } catch (error) {
@@ -53,7 +50,32 @@ function GamePage() {
 
     fetchRoomState();
 
-    socket.on("room-update", (room) => {
+    const debounce = (func, wait) => {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+      };
+    };
+
+    const validateRoomUpdate = (room) => {
+      // Ignore invalid updates (e.g., locked room with no participants)
+      if (
+        room.isLocked &&
+        (!room.participants || room.participants.length === 0)
+      ) {
+        console.warn("Ignoring invalid room-update:", room);
+        return false;
+      }
+      return true;
+    };
+
+    const debouncedRoomUpdate = debounce((room) => {
+      if (!validateRoomUpdate(room)) return;
+      console.log("Processing room-update:", {
+        isLocked: room.isLocked,
+        participants: room.participants.length,
+      });
       setRoomData((prev) => ({
         ...prev,
         roomCode: room.code,
@@ -65,18 +87,19 @@ function GamePage() {
         gameStarted: room.isLocked,
       }));
 
-      // Redirect if room is not locked or no players
-      if (!room.isLocked || room.participants.length === 0) {
+      // Only navigate if room is explicitly not locked
+      if (!room.isLocked && window.location.pathname !== `/room/${roomCode}`) {
         navigate(`/room/${roomCode}`);
       }
-    });
+    }, 1500); // Increased to 1500ms for Render latency
 
+    socket.on("room-update", debouncedRoomUpdate);
     socket.on("error", (message) => {
       setNotification({ type: "error", message });
     });
 
     return () => {
-      socket.off("room-update");
+      socket.off("room-update", debouncedRoomUpdate);
       socket.off("error");
     };
   }, [socket, roomCode, navigate, setRoomData]);

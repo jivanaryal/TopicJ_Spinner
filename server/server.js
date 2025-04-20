@@ -25,6 +25,15 @@ export const io = new Server(server, {
   cors: corsOptions,
 });
 
+// Simple debounce utility
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
 // Database initialization function
 const initializeDatabase = async () => {
   try {
@@ -108,7 +117,7 @@ const setupSocketIO = () => {
         // Join the new room
         const room = await getRoom(roomCode);
         if (!room) throw new Error("Room not found");
-        if (room.isLocked) throw new Error("Game already started");
+        if (room.isLocked) throw new Error("Cannot join: Game already started");
         if (room.participants.length >= 5) throw new Error("Room full");
 
         const participant = {
@@ -122,8 +131,17 @@ const setupSocketIO = () => {
 
         currentRoomCode = roomCode;
         socket.join(roomCode);
-        io.to(roomCode).emit("room-update", room);
+        console.log(
+          `User ${nickname} joined room ${roomCode}, participants: ${room.participants.length}`
+        );
+
+        // Debounced room-update emission
+        const debouncedRoomUpdate = debounce(() => {
+          io.to(roomCode).emit("room-update", room);
+        }, 500);
+        debouncedRoomUpdate();
       } catch (err) {
+        console.error(`Join-room error for ${roomCode}:`, err.message);
         socket.emit("error", err.message);
       }
     });
@@ -145,9 +163,22 @@ const setupSocketIO = () => {
         const roomRepo = AppDataSource.getRepository("Room");
         await roomRepo.save(room);
 
-        io.to(roomCode).emit("game-started", room);
-        io.to(roomCode).emit("room-update", room);
+        console.log(
+          `Game started in room ${roomCode}, participants: ${room.participants.length}, isLocked: ${room.isLocked}`
+        );
+
+        // Debounced emissions
+        const debouncedGameStarted = debounce(() => {
+          io.to(roomCode).emit("game-started", room);
+        }, 500);
+        const debouncedRoomUpdate = debounce(() => {
+          io.to(roomCode).emit("room-update", room);
+        }, 500);
+
+        debouncedGameStarted();
+        debouncedRoomUpdate();
       } catch (err) {
+        console.error(`Start-game error for ${roomCode}:`, err.message);
         socket.emit("error", err.message);
       }
     });
@@ -169,7 +200,11 @@ const setupSocketIO = () => {
         const roomRepo = AppDataSource.getRepository("Room");
         await roomRepo.save(room);
 
-        io.to(roomCode).emit("start-spin", { prizeNumber: randomIndex });
+        // Debounced start-spin emission
+        const debouncedStartSpin = debounce(() => {
+          io.to(roomCode).emit("start-spin", { prizeNumber: randomIndex });
+        }, 500);
+        debouncedStartSpin();
       } catch (err) {
         console.error(`Start-spin error for room ${roomCode}:`, err.message);
         socket.emit("error", err.message);
@@ -203,11 +238,15 @@ const setupSocketIO = () => {
         const roomRepo = AppDataSource.getRepository("Room");
         await roomRepo.save(room);
 
-        io.to(roomCode).emit("spin-result", {
-          topic: selectedTopic,
-          currentTurn: room.currentTurn,
-          topics: room.topics,
-        });
+        // Debounced spin-result emission
+        const debouncedSpinResult = debounce(() => {
+          io.to(roomCode).emit("spin-result", {
+            topic: selectedTopic,
+            currentTurn: room.currentTurn,
+            topics: room.topics,
+          });
+        }, 500);
+        debouncedSpinResult();
       } catch (err) {
         console.error(`Spin error for room ${roomCode}:`, err.message);
         socket.emit("error", err.message);
@@ -220,7 +259,7 @@ const setupSocketIO = () => {
 
       try {
         const room = await getRoom(currentRoomCode);
-        if (!room) return; // Room may have been deleted
+        if (!room) return;
 
         const participantIndex = room.participants.findIndex(
           (p) => p.socketId === socket.id
@@ -234,7 +273,12 @@ const setupSocketIO = () => {
           room.lastActiveAt = new Date();
           const roomRepo = AppDataSource.getRepository("Room");
           await roomRepo.save(room);
-          io.to(currentRoomCode).emit("room-update", room);
+
+          // Debounced room-update emission
+          const debouncedRoomUpdate = debounce(() => {
+            io.to(currentRoomCode).emit("room-update", room);
+          }, 500);
+          debouncedRoomUpdate();
         }
       } catch (err) {
         console.error("Disconnect error:", err);
