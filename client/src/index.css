@@ -1,0 +1,29 @@
+@import "tailwindcss";
+/* Add to your CSS */
+.tooltip {
+  position: relative;
+  cursor: not-allowed;
+}
+
+.tooltip:hover:after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+/* Add to CSS */
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 300ms;
+}
