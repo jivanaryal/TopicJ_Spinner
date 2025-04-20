@@ -23,6 +23,14 @@ function RoomPage() {
   const [loading, setLoading] = useState(true);
   const hasPrompted = useRef(false);
 
+  const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
   const handleCopyLink = () => {
     const link = `${window.location.origin}/room/${roomCode}`;
     navigator.clipboard.writeText(link).then(() => {
@@ -33,9 +41,9 @@ function RoomPage() {
     });
   };
 
-  const handleGameStarted = useCallback(() => {
-    navigate(`/game/${roomCode}`);
-  }, [navigate, roomCode]);
+  // const handleGameStarted = useCallback(() => {
+  //   navigate(`/game/${roomCode}`);
+  // }, [navigate, roomCode]);
 
   useEffect(() => {
     if (!socket) return;
@@ -58,7 +66,7 @@ function RoomPage() {
           gameStarted: room.isLocked,
         });
 
-        localStorage.setItem("roomCode", roomCode); // Persist roomCode
+        localStorage.setItem("roomCode", roomCode);
 
         if (!joined && !hasPrompted.current) {
           hasPrompted.current = true;
@@ -67,8 +75,20 @@ function RoomPage() {
           socket.emit("join-room", { roomCode, nickname });
         }
 
-        // Redirect to GamePage if room is locked
-        if (room.isLocked) {
+        // Only navigate if not already on GamePage
+        // Inside joinRoom function
+        if (
+          room.isLocked &&
+          !window.location.pathname.includes(`/game/${roomCode}`)
+        ) {
+          navigate(`/game/${roomCode}`);
+        }
+
+        // In the debouncedRoomUpdate listener
+        if (
+          room.isLocked &&
+          !window.location.pathname.includes(`/game/${roomCode}`)
+        ) {
           navigate(`/game/${roomCode}`);
         }
       } catch (error) {
@@ -81,8 +101,11 @@ function RoomPage() {
 
     joinRoom();
 
-    socket.on("game-started", handleGameStarted);
-    socket.on("room-update", (room) => {
+    const debouncedRoomUpdate = debounce((room) => {
+      console.log("Processing room-update:", {
+        isLocked: room.isLocked,
+        participants: room.participants.length,
+      });
       setRoomData((prev) => ({
         ...prev,
         roomCode: room.code,
@@ -93,24 +116,24 @@ function RoomPage() {
         selectedTopic: room.selectedTopic,
         gameStarted: room.isLocked,
       }));
-      if (room.isLocked) {
+      // Only navigate if not already on GamePage
+      if (room.isLocked && window.location.pathname !== `/game/${roomCode}`) {
         navigate(`/game/${roomCode}`);
       }
-    });
+    }, 500);
+
+    const debouncedGameStarted = debounce(() => {
+      navigate(`/game/${roomCode}`);
+    }, 500);
+
+    socket.on("game-started", debouncedGameStarted);
+    socket.on("room-update", debouncedRoomUpdate);
 
     return () => {
-      socket.off("game-started", handleGameStarted);
-      socket.off("room-update");
+      socket.off("game-started", debouncedGameStarted);
+      socket.off("room-update", debouncedRoomUpdate);
     };
-  }, [
-    socket,
-    roomCode,
-    joined,
-    nickname,
-    navigate,
-    setRoomData,
-    handleGameStarted,
-  ]);
+  }, [socket, roomCode, joined, nickname, navigate, setRoomData]);
 
   const handleAddTopic = async () => {
     if (!topic.trim()) return;

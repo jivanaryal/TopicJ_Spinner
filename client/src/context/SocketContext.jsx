@@ -27,14 +27,15 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on("connect", () => {
       console.log("Socket connected:", newSocket.id);
-      // Rejoin room if nickname and roomCode exist in localStorage
       const roomCode = localStorage.getItem("roomCode");
       const nickname = localStorage.getItem(`nickname_${roomCode}`);
-      if (roomCode && nickname) {
+      const currentPath = window.location.pathname;
+
+      // Only rejoin if on the room page
+      if (roomCode && nickname && currentPath === `/room/${roomCode}`) {
         newSocket.emit("join-room", { roomCode, nickname });
       }
     });
-
     newSocket.on("room-update", (room) => {
       console.log("Received room-update:", room);
       setRoomData((prev) => ({
