@@ -1,7 +1,6 @@
 import { AppDataSource } from "../../data-source.js";
 import Room from "../models/Room.js";
-import { io } from "../../index.js"; // Import the io instance from index.js
-
+import { io } from "../../server.js";
 const generateRoomCode = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
